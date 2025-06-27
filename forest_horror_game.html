@@ -1,0 +1,1986 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strażnik Lasu - Wieże Obserwacyjne</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        canvas {
+            display: block !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #00ff00;
+            z-index: 100;
+            font-size: 14px;
+            text-shadow: 0 0 10px #00ff00;
+        }
+        
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border: 2px solid #00ff00;
+            border-radius: 50%;
+            z-index: 100;
+            box-shadow: 0 0 10px #00ff00;
+        }
+        
+        #compass {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 120px;
+            height: 120px;
+            border: 2px solid #00ff00;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+        }
+        
+        #compassArrow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 40px;
+            background: #ff6600;
+            transform-origin: bottom center;
+            transform: translate(-50%, -100%);
+            box-shadow: 0 0 10px #ff6600;
+        }
+        
+        #distance {
+            position: absolute;
+            top: 160px;
+            right: 20px;
+            color: #00ff00;
+            font-size: 12px;
+            text-shadow: 0 0 5px #00ff00;
+            z-index: 100;
+        }
+        
+        #joystick {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 120px;
+            height: 120px;
+            background: rgba(0, 255, 0, 0.2);
+            border: 2px solid #00ff00;
+            border-radius: 50%;
+            touch-action: none;
+            z-index: 150;
+        }
+        
+        #joystickKnob {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 40px;
+            height: 40px;
+            background: #00ff00;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px #00ff00;
+        }
+        
+        #jumpButton {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 102, 0, 0.3);
+            border: 2px solid #ff6600;
+            border-radius: 50%;
+            color: #ff6600;
+            font-size: 12px;
+            text-align: center;
+            line-height: 76px;
+            touch-action: none;
+            user-select: none;
+            z-index: 150;
+        }
+        
+        #interactButton {
+            position: absolute;
+            bottom: 120px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 255, 0, 0.3);
+            border: 2px solid #00ff00;
+            border-radius: 50%;
+            color: #00ff00;
+            font-size: 12px;
+            text-align: center;
+            line-height: 56px;
+            touch-action: none;
+            user-select: none;
+            z-index: 150;
+        }
+        
+        #shootButton {
+            position: absolute;
+            bottom: 120px;
+            left: 20px;
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 255, 0, 0.3);
+            border: 2px solid #00ff00;
+            border-radius: 50%;
+            color: #00ff00;
+            font-size: 12px;
+            text-align: center;
+            line-height: 56px;
+            touch-action: none;
+            user-select: none;
+            z-index: 150;
+        }
+        
+        #macheteButton {
+            position: absolute;
+            bottom: 200px;
+            left: 20px;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 102, 0, 0.3);
+            border: 2px solid #ff6600;
+            border-radius: 50%;
+            color: #ff6600;
+            font-size: 10px;
+            text-align: center;
+            line-height: 56px;
+            touch-action: none;
+            user-select: none;
+            z-index: 150;
+        }
+        
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: #00ff00;
+            z-index: 100;
+            font-size: 12px;
+            text-shadow: 0 0 5px #00ff00;
+        }
+        
+        @media (max-width: 768px) {
+            #instructions {
+                bottom: 200px;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="hud">
+            <div style="color: #00ff00; font-weight: bold; margin-bottom: 10px;">🌲 STRAŻNIK LASU 🌲</div>
+            <div>Cel: Znajdź wieżę obserwacyjną</div>
+            <div>Wieże odwiedzone: <span id="towerCount">0</span>/3</div>
+            <div>Obserwatorzy aktywni: <span id="observerCount">0</span></div>
+            <div>Zdrowie: <span id="playerHealth">100</span>%</div>
+        </div>
+        
+        <div id="crosshair"></div>
+        
+        <div id="notebook" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.9); border: 2px solid #00ff00; padding: 20px; color: #00ff00; z-index: 200; max-width: 400px; text-align: center;">
+            <h3>NOTATKI Z WIEŻY OBSERWACYJNEJ</h3>
+            <div id="notebookContent"></div>
+            <button onclick="closeNotebook()" style="background: #003300; color: #00ff00; border: 1px solid #00ff00; padding: 10px; margin-top: 10px; cursor: pointer;">Zamknij [ESC]</button>
+        </div>
+        
+        <div id="compass">
+            <div id="compassArrow"></div>
+        </div>
+        
+        <div id="distance">
+            Dystans do celu: <span id="distanceValue">???</span>m
+        </div>
+        
+        <div id="joystick">
+            <div id="joystickKnob"></div>
+        </div>
+        
+        <div id="jumpButton">SKOK</div>
+        <div id="interactButton">E</div>
+        <div id="shootButton">STRZAŁ</div>
+        <div id="macheteButton">MACZETA</div>
+        
+        <div id="instructions">
+            <strong>STEROWANIE:</strong><br>
+            🖱️ <strong>Mysz/Pad prawy stick:</strong> Rozglądanie<br>
+            ⌨️ <strong>WASD/Pad lewy stick:</strong> Ruch<br>
+            🏃 <strong>Shift/Triggery:</strong> Bieg<br>
+            🦘 <strong>Spacja/A:</strong> Skok<br>
+            🔧 <strong>E/B:</strong> Interakcja<br>
+            🔫 <strong>Lewy przycisk myszy/R2:</strong> Strzał laserem<br>
+            ⚔️ <strong>Prawy przycisk myszy/L2:</strong> Atak maczetą<br>
+            📱 <strong>Mobile:</strong> Joystick + dotyk + przyciski<br>
+            👆👆 <strong>Podwójne dotknięcie ekranu = Skok</strong>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let game;
+        
+        class ForestHorrorGame {
+            constructor() {
+                console.log('Inicjalizacja gry...');
+                
+                this.gameState = {
+                    towersVisited: 0,
+                    observers: [],
+                    notebookOpen: false
+                };
+                
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.clock = new THREE.Clock();
+                
+                this.keys = {};
+                this.mouseX = 0;
+                this.mouseY = 0;
+                this.velocity = new THREE.Vector3();
+                this.canJump = true;
+                this.shouldJump = false;
+                
+                // Poprawne sterowanie FPS
+                this.yaw = 0; // Obrót w lewo/prawo (Y-axis)
+                this.pitch = 0; // Obrót góra/dół (X-axis)
+                this.mouseSensitivity = 0.002;
+                
+                // Obsługa pada/gamepada
+                this.gamepad = null;
+                this.gamepadIndex = -1;
+                this.gamepadSensitivity = 0.05;
+                this.isRunning = false;
+                
+                this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                this.joystickActive = false;
+                this.joystickX = 0;
+                this.joystickY = 0;
+                this.lastTap = 0;
+                
+                // System strzelania
+                this.laserShots = [];
+                this.lastShotTime = 0;
+                this.shotCooldown = 500; // 500ms między strzałami
+                this.laserSpeed = 50;
+                this.laserRange = 100;
+                
+                // System walki wręcz
+                this.macheteSwing = null;
+                this.lastMeleeTime = 0;
+                this.meleeCooldown = 800; // 800ms między atakami maczetą
+                this.meleeRange = 3; // Zasięg ataku maczetą
+                this.meleeDamage = 75; // Obrażenia maczety
+                
+                // Dźwięk lasera
+                this.laserSound = null;
+                this.setupLaserSound();
+                
+                // Dźwięk kroków
+                this.footstepSound = null;
+                this.lastFootstepTime = 0;
+                this.footstepInterval = 500; // 500ms między krokami
+                this.isMoving = false;
+                this.setupFootstepSound();
+                
+                // System potworów
+                this.monsterSpawnTimer = 0;
+                this.monsterSpawnInterval = 10000; // 10 sekund
+                this.maxMonsters = 5;
+                this.playerHealth = 100;
+                this.isPlayerDead = false;
+                
+                this.init();
+            }
+            
+            init() {
+                console.log('Ustawianie renderera...');
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(window.devicePixelRatio);
+                this.renderer.setClearColor(0x001122);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.domElement.style.display = 'block';
+                this.renderer.domElement.style.width = '100%';
+                this.renderer.domElement.style.height = '100%';
+                document.getElementById('gameContainer').appendChild(this.renderer.domElement);
+                
+                console.log('Tworzenie świata...');
+                this.setupWorld();
+                this.setupPlayer();
+                this.setupTowers();
+                this.setupControls();
+                this.setupTouchControls();
+                
+                // Wymuś prawidłowy rozmiar
+                setTimeout(() => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                }, 100);
+                
+                console.log('Rozpoczynanie animacji...');
+                this.animate();
+                
+                console.log('Gra gotowa!');
+            }
+            
+            setupWorld() {
+                // Światło
+                this.ambientLight = new THREE.AmbientLight(0x334455, 0.4);
+                this.scene.add(this.ambientLight);
+                
+                // Podłoże
+                const groundGeometry = new THREE.PlaneGeometry(200, 200);
+                const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x223311 });
+                const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+                ground.rotation.x = -Math.PI / 2;
+                this.scene.add(ground);
+                
+                // Proste drzewa
+                for (let i = 0; i < 50; i++) {
+                    const tree = this.createTree();
+                    tree.position.set(
+                        (Math.random() - 0.5) * 180,
+                        0,
+                        (Math.random() - 0.5) * 180
+                    );
+                    this.scene.add(tree);
+                }
+                
+                // Obserwatorzy
+                for (let i = 0; i < 3; i++) {
+                    const observer = this.createObserver();
+                    observer.position.set(
+                        (Math.random() - 0.5) * 100,
+                        3,
+                        (Math.random() - 0.5) * 100
+                    );
+                    this.scene.add(observer);
+                    this.gameState.observers.push(observer);
+                }
+            }
+            
+            createTree() {
+                const group = new THREE.Group();
+                
+                const trunk = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.5, 0.8, 8),
+                    new THREE.MeshLambertMaterial({ color: 0x5d4037 })
+                );
+                trunk.position.y = 4;
+                group.add(trunk);
+                
+                const crown = new THREE.Mesh(
+                    new THREE.SphereGeometry(4, 8, 6),
+                    new THREE.MeshLambertMaterial({ color: 0x2e5533 })
+                );
+                crown.position.y = 8;
+                group.add(crown);
+                
+                return group;
+            }
+            
+            createObserver() {
+                const group = new THREE.Group();
+                
+                // Ciało potwora
+                const body = new THREE.Mesh(
+                    new THREE.SphereGeometry(1.2, 8, 6),
+                    new THREE.MeshLambertMaterial({ color: 0x000000, emissive: 0x001100 })
+                );
+                group.add(body);
+                
+                // Głowa z paszczą
+                const head = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.8, 8, 6),
+                    new THREE.MeshLambertMaterial({ color: 0x111111, emissive: 0x002200 })
+                );
+                head.position.set(0, 0.3, 0.8);
+                group.add(head);
+                
+                // Górna szczęka - WIĘKSZA I BARDZIEJ WIDOCZNA
+                const upperJaw = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.8, 0.3, 0.6),
+                    new THREE.MeshLambertMaterial({ color: 0x333333, emissive: 0x111111 })
+                );
+                upperJaw.position.set(0, 0.5, 1.3);
+                group.add(upperJaw);
+                
+                // Dolna szczęka - WIĘKSZA I BARDZIEJ WIDOCZNA
+                const lowerJaw = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.8, 0.3, 0.6),
+                    new THREE.MeshLambertMaterial({ color: 0x333333, emissive: 0x111111 })
+                );
+                lowerJaw.position.set(0, 0.2, 1.3);
+                group.add(lowerJaw);
+                
+                // Zęby górne - WIĘKSZE
+                for (let i = 0; i < 6; i++) {
+                    const tooth = new THREE.Mesh(
+                        new THREE.ConeGeometry(0.08, 0.2, 4),
+                        new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x222222 })
+                    );
+                    tooth.position.set(-0.35 + i * 0.12, 0.65, 1.6);
+                    tooth.rotation.x = Math.PI / 2;
+                    group.add(tooth);
+                }
+                
+                // Zęby dolne - WIĘKSZE
+                for (let i = 0; i < 6; i++) {
+                    const tooth = new THREE.Mesh(
+                        new THREE.ConeGeometry(0.08, 0.2, 4),
+                        new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x222222 })
+                    );
+                    tooth.position.set(-0.35 + i * 0.12, 0.05, 1.6);
+                    tooth.rotation.x = -Math.PI / 2;
+                    group.add(tooth);
+                }
+                
+                // Czerwone oczy - WIĘKSZE I BARDZIEJ WIDOCZNE
+                const leftEye = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.35, 12, 8),
+                    new THREE.MeshLambertMaterial({ color: 0xff0000, emissive: 0xff0000 })
+                );
+                leftEye.position.set(-0.5, 0.5, 1.1);
+                group.add(leftEye);
+                
+                const rightEye = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.35, 12, 8),
+                    new THREE.MeshLambertMaterial({ color: 0xff0000, emissive: 0xff0000 })
+                );
+                rightEye.position.set(0.5, 0.5, 1.1);
+                group.add(rightEye);
+                
+                // Dodaj właściwości potwora
+                group.userData = {
+                    type: 'monster',
+                    upperJaw: upperJaw,
+                    lowerJaw: lowerJaw,
+                    jawOpen: false,
+                    jawSpeed: 0,
+                    lastJawTime: Date.now() - Math.random() * 1500, // Losowy start animacji
+                    health: 100,
+                    speed: 3 + Math.random() * 2, // Różne prędkości
+                    attackRange: 2,
+                    isAttacking: false
+                };
+                
+                return group;
+            }
+            
+            setupPlayer() {
+                this.camera.position.set(0, 2, 0);
+            }
+            
+            setupTowers() {
+                this.towers = [];
+                this.towerPositions = [
+                    { x: 30, z: 30 },
+                    { x: -40, z: 20 },
+                    { x: 10, z: -50 }
+                ];
+                
+                this.towerPositions.forEach((pos, index) => {
+                    const tower = this.createTower();
+                    tower.position.set(pos.x, 0, pos.z);
+                    tower.userData = { index: index, visited: false };
+                    this.scene.add(tower);
+                    this.towers.push(tower);
+                });
+                
+                this.currentTowerIndex = 0;
+                this.updateTargetTower();
+            }
+            
+            createTower() {
+                const group = new THREE.Group();
+                
+                const base = new THREE.Mesh(
+                    new THREE.CylinderGeometry(3, 4, 2),
+                    new THREE.MeshLambertMaterial({ color: 0x444444 })
+                );
+                base.position.y = 1;
+                group.add(base);
+                
+                const tower = new THREE.Mesh(
+                    new THREE.CylinderGeometry(1.5, 2, 15),
+                    new THREE.MeshLambertMaterial({ color: 0x666666 })
+                );
+                tower.position.y = 9.5;
+                group.add(tower);
+                
+                const light = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.5),
+                    new THREE.MeshLambertMaterial({ color: 0x00ff00, emissive: 0x00ff00 })
+                );
+                light.position.y = 18;
+                group.add(light);
+                
+                // Dodaj punkt światła
+                const pointLight = new THREE.PointLight(0x00ff00, 1, 50);
+                pointLight.position.y = 18;
+                group.add(pointLight);
+                
+                group.userData = { type: 'tower', light: light, pointLight: pointLight };
+                return group;
+            }
+            
+            updateTargetTower() {
+                this.towers.forEach((tower, index) => {
+                    if (tower.userData && tower.userData.light) {
+                        const color = index === this.currentTowerIndex ? 0xff6600 : 
+                                     tower.userData.visited ? 0x0066ff : 0x00ff00;
+                        tower.userData.light.material.color.setHex(color);
+                        tower.userData.light.material.emissive.setHex(color);
+                        
+                        // Aktualizuj też punkt światła jeśli istnieje
+                        if (tower.userData.pointLight) {
+                            tower.userData.pointLight.color.setHex(color);
+                        }
+                    }
+                });
+            }
+            
+            setupControls() {
+                document.addEventListener('keydown', (e) => {
+                    this.keys[e.code] = true;
+                    if (e.code === 'KeyE') {
+                        if (this.gameState.notebookOpen) {
+                            this.closeNotebook();
+                        } else {
+                            this.interact();
+                        }
+                    }
+                    if (e.code === 'Escape') this.closeNotebook();
+                });
+                
+                document.addEventListener('keyup', (e) => {
+                    this.keys[e.code] = false;
+                });
+                
+                // Obsługa zmiany rozmiaru okna
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                    this.renderer.setPixelRatio(window.devicePixelRatio);
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (!this.gameState.notebookOpen) {
+                        // Proste sterowanie bez pointer lock
+                        this.yaw -= e.movementX * this.mouseSensitivity;
+                        this.pitch -= e.movementY * this.mouseSensitivity;
+                        
+                        // Ograniczenie pitch
+                        this.pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.pitch));
+                    }
+                });
+                
+                // Strzelanie myszą
+                document.addEventListener('mousedown', (e) => {
+                    if (e.button === 0 && !this.gameState.notebookOpen) { // Lewy przycisk myszy
+                        this.shoot();
+                    } else if (e.button === 2 && !this.gameState.notebookOpen) { // Prawy przycisk myszy
+                        this.meleeAttack();
+                    }
+                });
+                
+                // Blokuj menu kontekstowe prawego przycisku myszy
+                document.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                });
+                
+                // Usuń pointer lock - nie działa w sandboxie
+                this.renderer.domElement.addEventListener('click', () => {
+                    console.log('Canvas clicked - sterowanie aktywne');
+                });
+                
+                // Obsługa pada
+                window.addEventListener('gamepadconnected', (e) => {
+                    console.log('Pad podłączony:', e.gamepad.id);
+                    this.gamepad = e.gamepad;
+                    this.gamepadIndex = e.gamepad.index;
+                });
+                
+                window.addEventListener('gamepaddisconnected', (e) => {
+                    console.log('Pad odłączony');
+                    this.gamepad = null;
+                    this.gamepadIndex = -1;
+                });
+            }
+            
+            setupTouchControls() {
+                const joystick = document.getElementById('joystick');
+                const joystickKnob = document.getElementById('joystickKnob');
+                const jumpButton = document.getElementById('jumpButton');
+                const interactButton = document.getElementById('interactButton');
+                const shootButton = document.getElementById('shootButton');
+                const macheteButton = document.getElementById('macheteButton');
+                
+                // Joystick
+                joystick.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.joystickActive = true;
+                    this.updateJoystick(e.touches[0]);
+                });
+                
+                joystick.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    if (this.joystickActive) {
+                        this.updateJoystick(e.touches[0]);
+                    }
+                });
+                
+                joystick.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.joystickActive = false;
+                    this.joystickX = 0;
+                    this.joystickY = 0;
+                    joystickKnob.style.transform = 'translate(-50%, -50%)';
+                });
+                
+                // Przyciski
+                jumpButton.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.shouldJump = true;
+                });
+                
+                interactButton.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.interact();
+                });
+                
+                shootButton.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.shoot();
+                });
+                
+                macheteButton.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.meleeAttack();
+                });
+                
+                // Sterowanie kamerą przez dotyk ekranu
+                this.renderer.domElement.addEventListener('touchstart', (e) => {
+                    if (e.touches.length === 1) {
+                        this.touchStartX = e.touches[0].clientX;
+                        this.touchStartY = e.touches[0].clientY;
+                        
+                        // Podwójne dotknięcie
+                        const now = Date.now();
+                        if (now - this.lastTap < 300) {
+                            this.shouldJump = true;
+                        }
+                        this.lastTap = now;
+                    }
+                });
+                
+                this.renderer.domElement.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    if (e.touches.length === 1) {
+                        const deltaX = (e.touches[0].clientX - this.touchStartX) * 0.01;
+                        const deltaY = (e.touches[0].clientY - this.touchStartY) * 0.01;
+                        
+                        // Użyj nowego systemu sterowania FPS
+                        this.yaw -= deltaX;
+                        this.pitch -= deltaY;
+                        this.pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.pitch));
+                        
+                        this.touchStartX = e.touches[0].clientX;
+                        this.touchStartY = e.touches[0].clientY;
+                    }
+                });
+            }
+            
+            updateGamepad() {
+                // Aktualizuj stan pada
+                if (this.gamepadIndex >= 0) {
+                    const gamepads = navigator.getGamepads();
+                    this.gamepad = gamepads[this.gamepadIndex];
+                }
+                
+                if (!this.gamepad) return;
+                
+                // Prawy analog stick - obrót kamery
+                const rightStickX = this.gamepad.axes[2]; // Prawy stick lewo/prawo
+                const rightStickY = this.gamepad.axes[3]; // Prawy stick góra/dół
+                
+                if (Math.abs(rightStickX) > 0.1) {
+                    this.yaw -= rightStickX * this.gamepadSensitivity;
+                }
+                
+                if (Math.abs(rightStickY) > 0.1) {
+                    this.pitch -= rightStickY * this.gamepadSensitivity;
+                    this.pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.pitch));
+                }
+                
+                // Przyciski pada
+                if (this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed) { // A/X - skok
+                    this.shouldJump = true;
+                }
+                
+                if (this.gamepad.buttons[1] && this.gamepad.buttons[1].pressed) { // B/O - interakcja
+                    if (this.gameState.notebookOpen) {
+                        this.closeNotebook();
+                    } else {
+                        this.interact();
+                    }
+                }
+                
+                // Strzelanie - R2 trigger
+                if (this.gamepad.buttons[7] && this.gamepad.buttons[7].pressed && this.gamepad.buttons[7].value > 0.5) {
+                    this.shoot();
+                }
+                
+                // Atak maczetą - L2 trigger
+                if (this.gamepad.buttons[6] && this.gamepad.buttons[6].pressed && this.gamepad.buttons[6].value > 0.5) {
+                    this.meleeAttack();
+                }
+                
+                // Triggery - bieg (tylko jeśli nie są używane do ataku)
+                const leftTrigger = this.gamepad.buttons[6] ? this.gamepad.buttons[6].value : 0;
+                const rightTrigger = this.gamepad.buttons[7] ? this.gamepad.buttons[7].value : 0;
+                this.isRunning = (leftTrigger > 0.5 && leftTrigger < 0.8) || (rightTrigger > 0.5 && rightTrigger < 0.8);
+            }
+            
+            updateJoystick(touch) {
+                const joystick = document.getElementById('joystick');
+                const knob = document.getElementById('joystickKnob');
+                const rect = joystick.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                const deltaX = touch.clientX - centerX;
+                const deltaY = touch.clientY - centerY;
+                const distance = Math.min(50, Math.sqrt(deltaX * deltaX + deltaY * deltaY));
+                const angle = Math.atan2(deltaY, deltaX);
+                
+                const knobX = Math.cos(angle) * distance;
+                const knobY = Math.sin(angle) * distance;
+                
+                knob.style.transform = `translate(calc(-50% + ${knobX}px), calc(-50% + ${knobY}px))`;
+                
+                this.joystickX = knobX / 50;
+                this.joystickY = knobY / 50;
+            }
+            
+            interact() {
+                // Jeśli notatnik jest otwarty, zamknij go
+                if (this.gameState.notebookOpen) {
+                    this.closeNotebook();
+                    return;
+                }
+                
+                // Sprawdź czy gracz jest blisko aktywnej wieży
+                const targetTower = this.towers[this.currentTowerIndex];
+                if (targetTower) {
+                    const distance = this.camera.position.distanceTo(targetTower.position);
+                    if (distance < 10) {
+                        // Sprawdź czy wieża nie była już odwiedzona
+                        if (!targetTower.userData.visited) {
+                            // Oznacz wieżę jako odwiedzoną
+                            targetTower.userData.visited = true;
+                            this.gameState.towersVisited++;
+                            
+                            // Generuj dane meteorologiczne
+                            const towerData = {
+                                id: this.gameState.towersVisited,
+                                windSpeed: (Math.random() * 50 + 10).toFixed(1),
+                                temperature: (Math.random() * 30 - 10).toFixed(1),
+                                pressure: (Math.random() * 100 + 950).toFixed(0),
+                                humidity: (Math.random() * 100).toFixed(0),
+                                visibility: (Math.random() * 10 + 5).toFixed(1),
+                                timestamp: new Date().toLocaleTimeString()
+                            };
+                            
+                            // Pokaż notatnik
+                            this.showNotebook(towerData);
+                            
+                            // Przejdź do następnej wieży
+                            this.currentTowerIndex++;
+                            this.updateTargetTower();
+                            this.updateHUD();
+                            
+                            if (this.gameState.towersVisited >= 3) {
+                                setTimeout(() => {
+                                    this.showVictoryScreen();
+                                }, 2000);
+                            }
+                        } else {
+                            // Wieża już odwiedzona - pokaż ponownie dane
+                            const towerData = {
+                                id: targetTower.userData.index + 1,
+                                windSpeed: (Math.random() * 50 + 10).toFixed(1),
+                                temperature: (Math.random() * 30 - 10).toFixed(1),
+                                pressure: (Math.random() * 100 + 950).toFixed(0),
+                                humidity: (Math.random() * 100).toFixed(0),
+                                visibility: (Math.random() * 10 + 5).toFixed(1),
+                                timestamp: new Date().toLocaleTimeString()
+                            };
+                            
+                            this.showNotebook(towerData);
+                        }
+                    } else {
+                        // Gracz jest za daleko - pokaż w HUD
+                        console.log('Podejdź bliżej do pomarańczowej wieży!');
+                        document.getElementById('hud').innerHTML = document.getElementById('hud').innerHTML.replace(/<br><span.*?<\/span>/, '') + '<br><span style="color: #ff6600;">Podejdź bliżej do wieży!</span>';
+                        setTimeout(() => {
+                            document.getElementById('hud').innerHTML = document.getElementById('hud').innerHTML.replace(/<br><span.*?<\/span>/, '');
+                        }, 2000);
+                    }
+                }
+            }
+            
+            showNotebook(data) {
+                const notebook = document.getElementById('notebook');
+                const content = document.getElementById('notebookContent');
+                
+                content.innerHTML = `
+                    <p><strong>WIEŻA OBSERWACYJNA #${data.id}</strong></p>
+                    <hr style="border-color: #00ff00; margin: 10px 0;">
+                    <p><strong>DANE METEOROLOGICZNE:</strong></p>
+                    <p>🌪️ Prędkość wiatru: <span style="color: #ffff00">${data.windSpeed} km/h</span></p>
+                    <p>🌡️ Temperatura: <span style="color: #ffff00">${data.temperature}°C</span></p>
+                    <p>📊 Ciśnienie: <span style="color: #ffff00">${data.pressure} hPa</span></p>
+                    <p>💧 Wilgotność: <span style="color: #ffff00">${data.humidity}%</span></p>
+                    <p>👁️ Widoczność: <span style="color: #ffff00">${data.visibility} km</span></p>
+                    <p>⏰ Czas pomiaru: <span style="color: #ffff00">${data.timestamp}</span></p>
+                    <hr style="border-color: #00ff00; margin: 10px 0;">
+                    <p style="color: #00ff00; font-weight: bold;">✅ DANE ZAPISANE W SYSTEMIE</p>
+                `;
+                
+                notebook.style.display = 'block';
+                this.gameState.notebookOpen = true;
+            }
+            
+            closeNotebook() {
+                document.getElementById('notebook').style.display = 'none';
+                this.gameState.notebookOpen = false;
+            }
+            
+            updateHUD() {
+                document.getElementById('towerCount').textContent = this.gameState.towersVisited;
+                document.getElementById('observerCount').textContent = this.gameState.observers.length;
+                document.getElementById('playerHealth').textContent = this.playerHealth.toFixed(0);
+            }
+            
+            update() {
+                const delta = this.clock.getDelta();
+                
+                // Aktualizuj pad
+                this.updateGamepad();
+                
+                // Poprawne sterowanie kamerą FPS
+                this.camera.rotation.order = 'YXZ';
+                this.camera.rotation.y = this.yaw;
+                this.camera.rotation.x = this.pitch;
+                
+                // Ruch gracza
+                const direction = new THREE.Vector3();
+                let speed = 10;
+                
+                // Pad - lewy analog stick
+                if (this.gamepad && this.gamepad.axes) {
+                    const leftStickX = this.gamepad.axes[0]; // Lewy stick lewo/prawo
+                    const leftStickY = this.gamepad.axes[1]; // Lewy stick góra/dół
+                    
+                    if (Math.abs(leftStickX) > 0.1) {
+                        direction.x += leftStickX;
+                    }
+                    if (Math.abs(leftStickY) > 0.1) {
+                        direction.z += leftStickY;
+                    }
+                    
+                    // Bieg z triggerami
+                    if (this.isRunning) {
+                        speed = 20;
+                    }
+                }
+                
+                // Joystick mobilny
+                if (this.joystickActive) {
+                    direction.x += this.joystickX;
+                    direction.z += this.joystickY;
+                }
+                
+                // Klawiatura
+                if (this.keys['KeyW']) direction.z -= 1;
+                if (this.keys['KeyS']) direction.z += 1;
+                if (this.keys['KeyA']) direction.x -= 1;
+                if (this.keys['KeyD']) direction.x += 1;
+                
+                // Bieg z Shift
+                if (this.keys['ShiftLeft'] || this.keys['ShiftRight']) {
+                    speed = 20;
+                }
+                
+                // Zastosuj rotację do kierunku ruchu
+                if (direction.length() > 0) {
+                    direction.normalize();
+                    
+                    // Obróć kierunek zgodnie z rotacją kamery (tylko Y)
+                    const euler = new THREE.Euler(0, this.yaw, 0);
+                    direction.applyEuler(euler);
+                    
+                    this.velocity.x = direction.x * speed;
+                    this.velocity.z = direction.z * speed;
+                    
+                    // Sprawdź czy gracz się porusza (na ziemi)
+                    if (this.camera.position.y <= 2.1) {
+                        this.isMoving = true;
+                    }
+                } else {
+                    this.velocity.x = 0;
+                    this.velocity.z = 0;
+                    this.isMoving = false;
+                }
+                
+                // Odtwórz dźwięk kroków
+                this.updateFootsteps();
+                
+                // Skok
+                if ((this.keys['Space'] || this.shouldJump) && this.canJump) {
+                    this.velocity.y = 8;
+                    this.canJump = false;
+                    this.shouldJump = false;
+                }
+                
+                // Grawitacja
+                this.velocity.y -= 25 * delta;
+                
+                // Sprawdź kolizje z wieżami i zablokuj ruch jeśli potrzeba
+                this.checkCollisions(delta);
+                
+                // Aktualizacja pozycji
+                this.camera.position.add(this.velocity.clone().multiplyScalar(delta));
+                
+                // Kolizja z ziemią
+                if (this.camera.position.y <= 2) {
+                    this.camera.position.y = 2;
+                    this.velocity.y = 0;
+                    this.canJump = true;
+                }
+                
+                // Aktualizacja kompasu
+                this.updateCompass();
+                
+                // Obserwatorzy patrzą na gracza
+                this.gameState.observers.forEach(observer => {
+                    observer.lookAt(this.camera.position);
+                });
+                
+                // Aktualizuj lasery
+                this.updateLasers(delta);
+                
+                // Aktualizuj potwory
+                this.updateMonsters(delta);
+            }
+            
+            updateFootsteps() {
+                const now = Date.now();
+                
+                // Sprawdź czy gracz się porusza i jest na ziemi
+                if (this.isMoving && this.camera.position.y <= 2.1) {
+                    // Sprawdź czy minął wystarczający czas od ostatniego kroku
+                    if (now - this.lastFootstepTime > this.footstepInterval) {
+                        this.footstepSound();
+                        this.lastFootstepTime = now;
+                    }
+                }
+            }
+            
+            updateLasers(delta) {
+                const now = Date.now();
+                const shotsToRemove = [];
+                
+                if (this.laserShots.length > 0) {
+                    console.log('🔄 Aktualizuję', this.laserShots.length, 'laserów'); // Debug
+                }
+                
+                this.laserShots.forEach((shot, index) => {
+                    // Animuj laser
+                    const elapsed = now - shot.startTime;
+                    const progress = elapsed / 2000; // 2 sekundy życia lasera (dłużej)
+                    
+                    if (progress < 1) {
+                        // Zmniejsz przezroczystość wolniej
+                        shot.mesh.material.opacity = 0.9 * (1 - progress * 0.5); // Wolniejsze zanikanie
+                        
+                        // Przesuń laser do przodu wolniej
+                        const moveDistance = this.laserSpeed * delta * 0.5; // Wolniejsze przesuwanie
+                        shot.mesh.position.add(shot.direction.clone().multiplyScalar(moveDistance));
+                        
+                        // Dodaj świecenie
+                        shot.mesh.material.emissive.setHex(0x00ff00);
+                        shot.mesh.material.emissiveIntensity = 0.5 * (1 - progress);
+                    } else {
+                        // Usuń laser
+                        console.log('🗑️ Usuwam laser #', index); // Debug
+                        this.scene.remove(shot.mesh);
+                        shotsToRemove.push(index);
+                    }
+                });
+                
+                // Usuń stare lasery
+                shotsToRemove.reverse().forEach(index => {
+                    this.laserShots.splice(index, 1);
+                });
+                
+                if (shotsToRemove.length > 0) {
+                    console.log('📊 Pozostało laserów:', this.laserShots.length); // Debug
+                }
+            }
+            
+            updateMonsters(delta) {
+                const now = Date.now();
+                
+                // Sprawdzaj czy gracz żyje
+                if (this.isPlayerDead) return;
+                
+                // Aktualizuj każdego potwora
+                this.gameState.observers.forEach(monster => {
+                    if (monster.visible && monster.userData.type === 'monster') {
+                        this.updateMonsterAI(monster, delta, now);
+                    }
+                });
+                
+                // Sprawdzaj spawn nowych potworów
+                this.monsterSpawnTimer += delta * 1000;
+                if (this.monsterSpawnTimer >= this.monsterSpawnInterval) {
+                    this.spawnNewMonster();
+                    this.monsterSpawnTimer = 0;
+                }
+            }
+            
+            updateMonsterAI(monster, delta, now) {
+                const playerPos = this.camera.position;
+                const monsterPos = monster.position;
+                
+                // Oblicz odległość do gracza
+                const distance = playerPos.distanceTo(monsterPos);
+                
+                // Animuj szczękę
+                this.animateMonsterJaw(monster, now);
+                
+                // Jeśli potwór jest blisko gracza - atakuj
+                if (distance < monster.userData.attackRange) {
+                    if (!monster.userData.isAttacking) {
+                        this.monsterAttack(monster);
+                    }
+                } else {
+                    // Ścigaj gracza
+                    this.chasePlayer(monster, playerPos, delta);
+                }
+                
+                // Potwór patrzy na gracza
+                monster.lookAt(playerPos);
+            }
+            
+            animateMonsterJaw(monster, now) {
+                const jawData = monster.userData;
+                const timeSinceLastJaw = now - jawData.lastJawTime;
+                
+                // Kłap szczęką co 1 sekundę (szybsze kłapanie)
+                if (timeSinceLastJaw > 1000) {
+                    jawData.jawOpen = !jawData.jawOpen;
+                    jawData.lastJawTime = now;
+                    
+                    // Dodaj dźwięk kłapania (jeśli dostępny)
+                    if (this.audioContext) {
+                        this.playJawSnapSound();
+                    }
+                }
+                
+                // Animuj szczękę
+                const upperJaw = jawData.upperJaw;
+                const lowerJaw = jawData.lowerJaw;
+                
+                if (jawData.jawOpen) {
+                    upperJaw.rotation.y = Math.PI / 2.5; // Poziomo otwarta górna szczęka
+                    lowerJaw.rotation.y = -Math.PI / 2.5; // Poziomo otwarta dolna szczęka
+                    
+                    // Przesuń szczęki do przodu podczas otwierania
+                    upperJaw.position.z = 1.6;
+                    lowerJaw.position.z = 1.6;
+                    
+                    // Dodaj efekt świecenia do zębów
+                    upperJaw.material.emissive.setHex(0x444444);
+                    lowerJaw.material.emissive.setHex(0x444444);
+                    
+                    // Powiększ szczęki podczas otwierania
+                    upperJaw.scale.setScalar(1.1);
+                    lowerJaw.scale.setScalar(1.1);
+                } else {
+                    upperJaw.rotation.y = 0; // Zamknij górną szczękę
+                    lowerJaw.rotation.y = 0; // Zamknij dolną szczękę
+                    
+                    // Przesuń szczęki z powrotem
+                    upperJaw.position.z = 1.3;
+                    lowerJaw.position.z = 1.3;
+                    
+                    // Usuń świecenie
+                    upperJaw.material.emissive.setHex(0x111111);
+                    lowerJaw.material.emissive.setHex(0x111111);
+                    
+                    // Przywróć normalny rozmiar
+                    upperJaw.scale.setScalar(1.0);
+                    lowerJaw.scale.setScalar(1.0);
+                }
+            }
+            
+            playJawSnapSound() {
+                try {
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    const filter = this.audioContext.createBiquadFilter();
+                    
+                    oscillator.connect(filter);
+                    filter.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    // Parametry dźwięku kłapania (niskie, krótkie)
+                    oscillator.frequency.setValueAtTime(80, this.audioContext.currentTime);
+                    oscillator.type = 'sawtooth';
+                    
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(150, this.audioContext.currentTime);
+                    
+                    gainNode.gain.setValueAtTime(0.05, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
+                    
+                    oscillator.start(this.audioContext.currentTime);
+                    oscillator.stop(this.audioContext.currentTime + 0.1);
+                } catch (error) {
+                    // Ignoruj błędy dźwięku
+                }
+            }
+            
+            chasePlayer(monster, playerPos, delta) {
+                const monsterPos = monster.position;
+                const direction = new THREE.Vector3();
+                direction.subVectors(playerPos, monsterPos);
+                direction.y = 0; // Nie poruszaj się w pionie
+                direction.normalize();
+                
+                // Przesuń potwora w kierunku gracza
+                const speed = monster.userData.speed;
+                monster.position.add(direction.clone().multiplyScalar(speed * delta));
+            }
+            
+            monsterAttack(monster) {
+                monster.userData.isAttacking = true;
+                
+                // Otwórz szczękę bardzo szeroko podczas ataku
+                const upperJaw = monster.userData.upperJaw;
+                const lowerJaw = monster.userData.lowerJaw;
+                upperJaw.rotation.y = Math.PI / 2.5; // Poziomo otwarta górna szczęka
+                lowerJaw.rotation.y = -Math.PI / 2.5; // Poziomo otwarta dolna szczęka
+                
+                // Przesuń szczęki jeszcze bardziej do przodu podczas ataku
+                upperJaw.position.z = 1.7;
+                lowerJaw.position.z = 1.7;
+                
+                // Sprawdź czy atak trafia
+                const distance = this.camera.position.distanceTo(monster.position);
+                if (distance < monster.userData.attackRange) {
+                    this.playerTakeDamage(20);
+                }
+                
+                // Zresetuj atak po 1.5 sekundzie
+                setTimeout(() => {
+                    monster.userData.isAttacking = false;
+                    
+                    // Przywróć normalną pozycję szczęk
+                    upperJaw.position.z = 1.3;
+                    lowerJaw.position.z = 1.3;
+                }, 1500);
+            }
+            
+            playerTakeDamage(damage) {
+                this.playerHealth -= damage;
+                
+                // Efekt wizualny obrażeń
+                this.createDamageEffect();
+                
+                // Sprawdź czy gracz umarł
+                if (this.playerHealth <= 0) {
+                    this.playerDeath();
+                }
+                
+                // Aktualizuj HUD
+                this.updateHUD();
+            }
+            
+            createDamageEffect() {
+                // Czerwone miganie ekranu
+                const overlay = document.createElement('div');
+                overlay.style.position = 'absolute';
+                overlay.style.top = '0';
+                overlay.style.left = '0';
+                overlay.style.width = '100%';
+                overlay.style.height = '100%';
+                overlay.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
+                overlay.style.pointerEvents = 'none';
+                overlay.style.zIndex = '1000';
+                document.body.appendChild(overlay);
+                
+                // Usuń efekt po 200ms
+                setTimeout(() => {
+                    document.body.removeChild(overlay);
+                }, 200);
+            }
+            
+            playerDeath() {
+                this.isPlayerDead = true;
+                
+                // Pokaż ekran śmierci
+                const deathScreen = document.createElement('div');
+                deathScreen.style.position = 'absolute';
+                deathScreen.style.top = '0';
+                deathScreen.style.left = '0';
+                deathScreen.style.width = '100%';
+                deathScreen.style.height = '100%';
+                deathScreen.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+                deathScreen.style.color = '#ff0000';
+                deathScreen.style.fontSize = '48px';
+                deathScreen.style.fontFamily = 'Courier New, monospace';
+                deathScreen.style.display = 'flex';
+                deathScreen.style.alignItems = 'center';
+                deathScreen.style.justifyContent = 'center';
+                deathScreen.style.zIndex = '2000';
+                deathScreen.innerHTML = `
+                    <div style="text-align: center;">
+                        <h1>💀 ŚMIERĆ 💀</h1>
+                        <p>Zostałeś pożarty przez potwory!</p>
+                        <p>Gra rozpocznie się ponownie za <span id="deathCountdown">5</span> sekund...</p>
+                        <div style="margin-top: 30px; font-size: 24px;">
+                            <p>🎯 Potwory zabite: ${this.gameState.observers.filter(m => !m.visible).length}</p>
+                            <p>🏗️ Wieże odwiedzone: ${this.gameState.towersVisited}/3</p>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(deathScreen);
+                
+                // Odliczanie do restartu
+                let countdown = 5;
+                const countdownElement = document.getElementById('deathCountdown');
+                const countdownInterval = setInterval(() => {
+                    countdown--;
+                    countdownElement.textContent = countdown;
+                    
+                    if (countdown <= 0) {
+                        clearInterval(countdownInterval);
+                        this.restartGame();
+                    }
+                }, 1000);
+            }
+            
+            spawnNewMonster() {
+                // Sprawdź limit potworów
+                const activeMonsters = this.gameState.observers.filter(m => m.visible && m.userData.type === 'monster').length;
+                if (activeMonsters >= this.maxMonsters) return;
+                
+                // Utwórz nowego potwora na krawędzi mapy
+                const monster = this.createObserver();
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 80 + Math.random() * 20; // 80-100 jednostek od środka
+                
+                monster.position.set(
+                    Math.cos(angle) * distance,
+                    3,
+                    Math.sin(angle) * distance
+                );
+                
+                this.scene.add(monster);
+                this.gameState.observers.push(monster);
+                
+                console.log('👹 Nowy potwór się pojawił!');
+            }
+            
+            checkCollisions(delta) {
+                // Sprawdź kolizje z każdą wieżą
+                this.towers.forEach(tower => {
+                    const towerPos = tower.position;
+                    const playerPos = this.camera.position;
+                    
+                    // Oblicz odległość od środka wieży (ignoruj Y)
+                    const distanceX = playerPos.x - towerPos.x;
+                    const distanceZ = playerPos.z - towerPos.z;
+                    const distance = Math.sqrt(distanceX * distanceX + distanceZ * distanceZ);
+                    
+                    // Promień kolizji wieży (5 jednostek)
+                    const towerRadius = 5;
+                    
+                    // Sprawdź czy planowany ruch prowadzi do kolizji
+                    const plannedX = playerPos.x + this.velocity.x * delta;
+                    const plannedZ = playerPos.z + this.velocity.z * delta;
+                    const plannedDistanceX = plannedX - towerPos.x;
+                    const plannedDistanceZ = plannedZ - towerPos.z;
+                    const plannedDistance = Math.sqrt(plannedDistanceX * plannedDistanceX + plannedDistanceZ * plannedDistanceZ);
+                    
+                    // Jeśli planowany ruch prowadzi do kolizji
+                    if (plannedDistance < towerRadius) {
+                        // Zatrzymaj ruch w kierunku wieży
+                        if (Math.abs(distanceX) > Math.abs(distanceZ)) {
+                            // Blokuj ruch w osi X
+                            this.velocity.x = 0;
+                        } else {
+                            // Blokuj ruch w osi Z
+                            this.velocity.z = 0;
+                        }
+                    }
+                });
+            }
+            
+            updateCompass() {
+                if (this.currentTowerIndex < this.towers.length) {
+                    const targetTower = this.towers[this.currentTowerIndex];
+                    const targetPos = targetTower.position;
+                    const playerPos = this.camera.position;
+                    
+                    const direction = new THREE.Vector3(
+                        targetPos.x - playerPos.x,
+                        0,
+                        targetPos.z - playerPos.z
+                    );
+                    
+                    const distance = Math.sqrt(direction.x * direction.x + direction.z * direction.z);
+                    document.getElementById('distanceValue').textContent = Math.round(distance);
+                    
+                    const angle = Math.atan2(direction.x, direction.z);
+                    const compassArrow = document.getElementById('compassArrow');
+                    if (compassArrow) {
+                        compassArrow.style.transform = `translate(-50%, -100%) rotate(${angle}rad)`;
+                    }
+                }
+            }
+            
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                this.update();
+                this.renderer.render(this.scene, this.camera);
+            }
+            
+            setupLaserSound() {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.audioContext = audioContext;
+                    
+                    // Tworzenie dźwięku lasera
+                    const createLaserSound = () => {
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+                        
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+                        
+                        // Parametry dźwięku lasera
+                        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.1);
+                        oscillator.type = 'sawtooth';
+                        
+                        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                        
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.1);
+                    };
+                    
+                    this.laserSound = createLaserSound;
+                } catch (error) {
+                    console.log('Dźwięk niedostępny:', error);
+                    this.laserSound = () => {}; // Pusta funkcja jeśli dźwięk nie działa
+                }
+            }
+            
+            setupFootstepSound() {
+                try {
+                    if (!this.audioContext) {
+                        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    
+                    // Tworzenie dźwięku kroków
+                    const createFootstepSound = () => {
+                        const oscillator = this.audioContext.createOscillator();
+                        const gainNode = this.audioContext.createGain();
+                        const filter = this.audioContext.createBiquadFilter();
+                        
+                        oscillator.connect(filter);
+                        filter.connect(gainNode);
+                        gainNode.connect(this.audioContext.destination);
+                        
+                        // Parametry dźwięku kroków (niskie, stłumione)
+                        oscillator.frequency.setValueAtTime(150, this.audioContext.currentTime);
+                        oscillator.type = 'sine';
+                        
+                        filter.type = 'lowpass';
+                        filter.frequency.setValueAtTime(200, this.audioContext.currentTime);
+                        
+                        gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.2);
+                        
+                        oscillator.start(this.audioContext.currentTime);
+                        oscillator.stop(this.audioContext.currentTime + 0.2);
+                    };
+                    
+                    this.footstepSound = createFootstepSound;
+                } catch (error) {
+                    console.log('Dźwięk kroków niedostępny:', error);
+                    this.footstepSound = () => {}; // Pusta funkcja jeśli dźwięk nie działa
+                }
+            }
+            
+            shoot() {
+                const now = Date.now();
+                if (now - this.lastShotTime < this.shotCooldown) return;
+                
+                this.lastShotTime = now;
+                
+                console.log('🔫 Strzał!'); // Debug
+                
+                // Odtwórz dźwięk lasera
+                this.laserSound();
+                
+                // Kierunek strzału (do przodu kamery) - ZDECLARUJ NAJPIERW!
+                const direction = new THREE.Vector3(0, 0, -1);
+                direction.applyQuaternion(this.camera.quaternion);
+                
+                // Utwórz promień lasera
+                const laserGeometry = new THREE.CylinderGeometry(0.08, 0.08, this.laserRange, 8); // Większy promień
+                const laserMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0x00ff00, 
+                    transparent: true, 
+                    opacity: 0.9,
+                    emissive: 0x00ff00,
+                    emissiveIntensity: 0.5
+                });
+                const laser = new THREE.Mesh(laserGeometry, laserMaterial);
+                
+                // Ustaw pozycję i kierunek lasera
+                laser.position.copy(this.camera.position);
+                laser.position.add(direction.clone().multiplyScalar(2)); // Przesuń laser 2 jednostki do przodu
+                
+                // Obróć laser w kierunku strzału
+                laser.lookAt(this.camera.position.clone().add(direction.clone().multiplyScalar(10)));
+                laser.rotateX(Math.PI / 2); // Popraw orientację cylindra
+                
+                // Dodaj do sceny
+                this.scene.add(laser);
+                
+                console.log('✅ Laser dodany do sceny, pozycja:', laser.position); // Debug
+                
+                // Zapisz informacje o strzale
+                const shot = {
+                    mesh: laser,
+                    direction: direction,
+                    startTime: now,
+                    startPosition: this.camera.position.clone(),
+                    hit: false
+                };
+                
+                this.laserShots.push(shot);
+                console.log('📊 Liczba aktywnych laserów:', this.laserShots.length); // Debug
+                
+                // Sprawdź trafienia w obserwatorów
+                this.checkLaserHits(shot);
+            }
+            
+            checkLaserHits(shot) {
+                this.gameState.observers.forEach((observer, index) => {
+                    if (observer.visible) {
+                        const observerPos = observer.position;
+                        const laserStart = shot.startPosition;
+                        const laserEnd = laserStart.clone().add(shot.direction.clone().multiplyScalar(this.laserRange));
+                        
+                        // Sprawdź czy laser trafia w obserwatora
+                        const distance = this.pointToLineDistance(observerPos, laserStart, laserEnd);
+                        
+                        if (distance < 1.5) { // Promień trafienia
+                            // Trafienie!
+                            this.hitObserver(observer, index);
+                            shot.hit = true;
+                        }
+                    }
+                });
+            }
+            
+            pointToLineDistance(point, lineStart, lineEnd) {
+                const A = point.x - lineStart.x;
+                const B = point.y - lineStart.y;
+                const C = point.z - lineStart.z;
+                
+                const D = lineEnd.x - lineStart.x;
+                const E = lineEnd.y - lineStart.y;
+                const F = lineEnd.z - lineStart.z;
+                
+                const dot = A * D + B * E + C * F;
+                const lenSq = D * D + E * E + F * F;
+                
+                if (lenSq === 0) return Math.sqrt(A * A + B * B + C * C);
+                
+                const param = dot / lenSq;
+                
+                let xx, yy, zz;
+                if (param < 0) {
+                    xx = lineStart.x;
+                    yy = lineStart.y;
+                    zz = lineStart.z;
+                } else if (param > 1) {
+                    xx = lineEnd.x;
+                    yy = lineEnd.y;
+                    zz = lineEnd.z;
+                } else {
+                    xx = lineStart.x + param * D;
+                    yy = lineStart.y + param * E;
+                    zz = lineStart.z + param * F;
+                }
+                
+                const dx = point.x - xx;
+                const dy = point.y - yy;
+                const dz = point.z - zz;
+                
+                return Math.sqrt(dx * dx + dy * dy + dz * dz);
+            }
+            
+            hitObserver(observer, index) {
+                if (observer.userData.type === 'monster') {
+                    // Potwór otrzymuje obrażenia
+                    observer.userData.health -= 50; // Każdy strzał zadaje 50 obrażeń
+                    
+                    // Efekt trafienia
+                    this.createHitEffect(observer.position);
+                    
+                    // Sprawdź czy potwór umarł
+                    if (observer.userData.health <= 0) {
+                        // Ukryj potwora
+                        observer.visible = false;
+                        
+                        // Efekt eksplozji
+                        this.createExplosion(observer.position);
+                        
+                        console.log(`🎯 Potwór #${index + 1} zabity!`);
+                    } else {
+                        console.log(`💥 Potwór #${index + 1} trafiony! (${observer.userData.health} HP)`);
+                    }
+                } else {
+                    // Stary system dla zwykłych obserwatorów
+                    observer.visible = false;
+                    this.createExplosion(observer.position);
+                    console.log(`🎯 Trafiono obserwatora #${index + 1}!`);
+                }
+                
+                // Aktualizuj licznik
+                this.updateHUD();
+            }
+            
+            createHitEffect(position) {
+                // Twórz efekt trafienia
+                const hitGeometry = new THREE.SphereGeometry(1, 8, 6);
+                const hitMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xffff00, 
+                    transparent: true, 
+                    opacity: 0.8 
+                });
+                const hit = new THREE.Mesh(hitGeometry, hitMaterial);
+                hit.position.copy(position);
+                this.scene.add(hit);
+                
+                // Animuj efekt trafienia
+                const startTime = Date.now();
+                const animateHit = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = elapsed / 500; // 0.5 sekundy
+                    
+                    if (progress < 1) {
+                        hit.scale.setScalar(1 + progress);
+                        hit.material.opacity = 0.8 * (1 - progress);
+                        requestAnimationFrame(animateHit);
+                    } else {
+                        this.scene.remove(hit);
+                    }
+                };
+                animateHit();
+            }
+            
+            createExplosion(position) {
+                // Twórz efekt eksplozji
+                const explosionGeometry = new THREE.SphereGeometry(2, 8, 6);
+                const explosionMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xff6600, 
+                    transparent: true, 
+                    opacity: 0.8 
+                });
+                const explosion = new THREE.Mesh(explosionGeometry, explosionMaterial);
+                explosion.position.copy(position);
+                this.scene.add(explosion);
+                
+                // Animuj eksplozję
+                const startTime = Date.now();
+                const animateExplosion = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = elapsed / 1000; // 1 sekunda
+                    
+                    if (progress < 1) {
+                        explosion.scale.setScalar(1 + progress * 2);
+                        explosion.material.opacity = 0.8 * (1 - progress);
+                        requestAnimationFrame(animateExplosion);
+                    } else {
+                        this.scene.remove(explosion);
+                    }
+                };
+                animateExplosion();
+            }
+            
+            showVictoryScreen() {
+                // Pokaż ekran zwycięstwa
+                const victoryScreen = document.createElement('div');
+                victoryScreen.style.position = 'absolute';
+                victoryScreen.style.top = '0';
+                victoryScreen.style.left = '0';
+                victoryScreen.style.width = '100%';
+                victoryScreen.style.height = '100%';
+                victoryScreen.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+                victoryScreen.style.color = '#00ff00';
+                victoryScreen.style.fontSize = '36px';
+                victoryScreen.style.fontFamily = 'Courier New, monospace';
+                victoryScreen.style.display = 'flex';
+                victoryScreen.style.alignItems = 'center';
+                victoryScreen.style.justifyContent = 'center';
+                victoryScreen.style.zIndex = '2000';
+                victoryScreen.innerHTML = `
+                    <div style="text-align: center;">
+                        <h1>🎉 ZWYCIĘSTWO! 🎉</h1>
+                        <p>Udało Ci się odwiedzić wszystkie wieże obserwacyjne!</p>
+                        <p>Dane meteorologiczne zostały zebrane.</p>
+                        <p>Gra rozpocznie się ponownie za <span id="restartCountdown">5</span> sekund...</p>
+                        <div style="margin-top: 30px; font-size: 24px;">
+                            <p>🎯 Potwory zabite: ${this.gameState.observers.filter(m => !m.visible).length}</p>
+                            <p>❤️ Zdrowie końcowe: ${this.playerHealth}%</p>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(victoryScreen);
+                
+                // Odliczanie do restartu
+                let countdown = 5;
+                const countdownElement = document.getElementById('restartCountdown');
+                const countdownInterval = setInterval(() => {
+                    countdown--;
+                    countdownElement.textContent = countdown;
+                    
+                    if (countdown <= 0) {
+                        clearInterval(countdownInterval);
+                        this.restartGame();
+                    }
+                }, 1000);
+            }
+            
+            restartGame() {
+                console.log('🔄 Restartowanie gry...');
+                
+                // Usuń ekran zwycięstwa
+                const victoryScreen = document.querySelector('div[style*="z-index: 2000"]');
+                if (victoryScreen) {
+                    document.body.removeChild(victoryScreen);
+                }
+                
+                // Zresetuj stan gry
+                this.resetGameState();
+                
+                // Zresetuj świat
+                this.resetWorld();
+                
+                // Zaktualizuj HUD
+                this.updateHUD();
+                
+                console.log('✅ Gra zrestartowana!');
+            }
+            
+            resetGameState() {
+                // Zresetuj stan gry
+                this.gameState = {
+                    towersVisited: 0,
+                    observers: [],
+                    notebookOpen: false
+                };
+                
+                // Zresetuj pozycję gracza
+                this.camera.position.set(0, 2, 0);
+                this.yaw = 0;
+                this.pitch = 0;
+                this.velocity.set(0, 0, 0);
+                this.canJump = true;
+                this.shouldJump = false;
+                
+                // Zresetuj zdrowie
+                this.playerHealth = 100;
+                this.isPlayerDead = false;
+                
+                // Zresetuj system strzelania
+                this.laserShots = [];
+                this.lastShotTime = 0;
+                
+                // Zresetuj system potworów
+                this.monsterSpawnTimer = 0;
+                this.currentTowerIndex = 0;
+            }
+            
+            resetWorld() {
+                // Usuń wszystkie potwory ze sceny
+                this.gameState.observers.forEach(observer => {
+                    this.scene.remove(observer);
+                });
+                this.gameState.observers = [];
+                
+                // Usuń wszystkie lasery
+                this.laserShots.forEach(shot => {
+                    this.scene.remove(shot.mesh);
+                });
+                this.laserShots = [];
+                
+                // Zresetuj wieże
+                this.towers.forEach(tower => {
+                    tower.userData.visited = false;
+                });
+                this.updateTargetTower();
+                
+                // Utwórz nowe potwory
+                for (let i = 0; i < 3; i++) {
+                    const observer = this.createObserver();
+                    observer.position.set(
+                        (Math.random() - 0.5) * 100,
+                        3,
+                        (Math.random() - 0.5) * 100
+                    );
+                    this.scene.add(observer);
+                    this.gameState.observers.push(observer);
+                }
+            }
+            
+            meleeAttack() {
+                const now = Date.now();
+                if (now - this.lastMeleeTime < this.meleeCooldown) return;
+                
+                this.lastMeleeTime = now;
+                
+                console.log('⚔️ Atak maczetą!'); // Debug
+                
+                // Odtwórz dźwięk machania maczetą
+                this.playMacheteSound();
+                
+                // Utwórz wizualny efekt machania maczetą
+                this.createMacheteSwing();
+                
+                // Sprawdź trafienia w potwory w zasięgu
+                this.checkMeleeHits();
+            }
+            
+            createMacheteSwing() {
+                // Usuń poprzedni swing jeśli istnieje
+                if (this.macheteSwing) {
+                    this.scene.remove(this.macheteSwing);
+                }
+                
+                // Utwórz efekt machania maczetą
+                const swingGeometry = new THREE.CylinderGeometry(0.02, 0.02, 2, 8);
+                const swingMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xff6600, 
+                    transparent: true, 
+                    opacity: 0.8,
+                    emissive: 0xff6600,
+                    emissiveIntensity: 0.3
+                });
+                this.macheteSwing = new THREE.Mesh(swingGeometry, swingMaterial);
+                
+                // Ustaw pozycję przed kamerą
+                this.macheteSwing.position.copy(this.camera.position);
+                const direction = new THREE.Vector3(0, 0, -1);
+                direction.applyQuaternion(this.camera.quaternion);
+                this.macheteSwing.position.add(direction.clone().multiplyScalar(1.5));
+                
+                // Obróć maczetę
+                this.macheteSwing.lookAt(this.camera.position.clone().add(direction.clone().multiplyScalar(10)));
+                this.macheteSwing.rotateX(Math.PI / 2);
+                
+                // Dodaj do sceny
+                this.scene.add(this.macheteSwing);
+                
+                // Animuj swing
+                const startTime = Date.now();
+                const animateSwing = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = elapsed / 300; // 300ms animacji
+                    
+                    if (progress < 1) {
+                        // Obróć maczetę w łuku
+                        this.macheteSwing.rotation.z = Math.sin(progress * Math.PI * 2) * 0.5;
+                        this.macheteSwing.material.opacity = 0.8 * (1 - progress);
+                        requestAnimationFrame(animateSwing);
+                    } else {
+                        // Usuń efekt
+                        this.scene.remove(this.macheteSwing);
+                        this.macheteSwing = null;
+                    }
+                };
+                animateSwing();
+            }
+            
+            checkMeleeHits() {
+                this.gameState.observers.forEach((observer, index) => {
+                    if (observer.visible) {
+                        const distance = this.camera.position.distanceTo(observer.position);
+                        
+                        if (distance < this.meleeRange) {
+                            // Trafienie maczetą!
+                            this.hitObserverWithMelee(observer, index);
+                        }
+                    }
+                });
+            }
+            
+            hitObserverWithMelee(observer, index) {
+                if (observer.userData.type === 'monster') {
+                    // Potwór otrzymuje obrażenia od maczety
+                    observer.userData.health -= this.meleeDamage;
+                    
+                    // Efekt trafienia maczetą
+                    this.createMeleeHitEffect(observer.position);
+                    
+                    // Sprawdź czy potwór umarł
+                    if (observer.userData.health <= 0) {
+                        // Ukryj potwora
+                        observer.visible = false;
+                        
+                        // Efekt eksplozji
+                        this.createExplosion(observer.position);
+                        
+                        console.log(`⚔️ Potwór #${index + 1} zabity maczetą!`);
+                    } else {
+                        console.log(`💥 Potwór #${index + 1} trafiony maczetą! (${observer.userData.health} HP)`);
+                    }
+                } else {
+                    // Stary system dla zwykłych obserwatorów
+                    observer.visible = false;
+                    this.createExplosion(observer.position);
+                    console.log(`⚔️ Trafiono obserwatora #${index + 1} maczetą!`);
+                }
+                
+                // Aktualizuj licznik
+                this.updateHUD();
+            }
+            
+            createMeleeHitEffect(position) {
+                // Twórz efekt trafienia maczetą
+                const hitGeometry = new THREE.SphereGeometry(0.8, 8, 6);
+                const hitMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xff6600, 
+                    transparent: true, 
+                    opacity: 0.9 
+                });
+                const hit = new THREE.Mesh(hitGeometry, hitMaterial);
+                hit.position.copy(position);
+                this.scene.add(hit);
+                
+                // Animuj efekt trafienia
+                const startTime = Date.now();
+                const animateHit = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = elapsed / 400; // 0.4 sekundy
+                    
+                    if (progress < 1) {
+                        hit.scale.setScalar(1 + progress * 0.5);
+                        hit.material.opacity = 0.9 * (1 - progress);
+                        requestAnimationFrame(animateHit);
+                    } else {
+                        this.scene.remove(hit);
+                    }
+                };
+                animateHit();
+            }
+            
+            playMacheteSound() {
+                try {
+                    if (!this.audioContext) {
+                        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    const filter = this.audioContext.createBiquadFilter();
+                    
+                    oscillator.connect(filter);
+                    filter.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    // Parametry dźwięku machania maczetą (świst)
+                    oscillator.frequency.setValueAtTime(200, this.audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(100, this.audioContext.currentTime + 0.2);
+                    oscillator.type = 'sawtooth';
+                    
+                    filter.type = 'highpass';
+                    filter.frequency.setValueAtTime(150, this.audioContext.currentTime);
+                    
+                    gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.2);
+                    
+                    oscillator.start(this.audioContext.currentTime);
+                    oscillator.stop(this.audioContext.currentTime + 0.2);
+                } catch (error) {
+                    // Ignoruj błędy dźwięku
+                }
+            }
+        }
+        
+        // Globalna funkcja do zamykania notatnika
+        function closeNotebook() {
+            document.getElementById('notebook').style.display = 'none';
+            if (game) {
+                game.gameState.notebookOpen = false;
+            }
+        }
+        
+        // Start gry - tylko jeden raz
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                game = new ForestHorrorGame();
+                console.log('Gra uruchomiona pomyślnie!');
+            } catch (error) {
+                console.error('Błąd uruchamiania gry:', error);
+                document.body.innerHTML = '<div style="color: white; padding: 20px;">Błąd: ' + error.message + '</div>';
+            }
+        });
+    </script>
+</body>
+</html>
